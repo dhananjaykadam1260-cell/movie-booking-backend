@@ -45,4 +45,8 @@ public class ShowService {
     public List<Show> getAllShows() {
         return showRepository.findAll();
     }
+    
+    public List<Show> getShowsByMovie(Long movieId) {
+        return showRepository.findByMovieId(movieId);
+    }
 }

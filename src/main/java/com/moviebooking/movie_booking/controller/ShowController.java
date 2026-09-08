@@ -31,4 +31,9 @@ public class ShowController {
     public List<Show> getAllShows() {
         return showService.getAllShows();
     }
+    
+    @GetMapping("/movie/{movieId}")
+    public List<Show> getShowsByMovie(@PathVariable Long movieId) {
+        return showService.getShowsByMovie(movieId);
+    }
 }
