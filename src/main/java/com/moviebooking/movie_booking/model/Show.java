@@ -25,6 +25,10 @@ public class Show {
     @JoinColumn(name = "theatre_id")
     private Theatre theatre;
 
+    @ManyToOne
+    @JoinColumn(name = "screen_id")
+    private Screen screen;
+
     public Long getId() {
         return id;
     }
@@ -71,5 +75,13 @@ public class Show {
 
     public void setTheatre(Theatre theatre) {
         this.theatre = theatre;
+    }
+
+    public Screen getScreen() {
+        return screen;
+    }
+
+    public void setScreen(Screen screen) {
+        this.screen = screen;
     }
 }

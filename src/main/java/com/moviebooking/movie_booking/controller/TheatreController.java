@@ -1,6 +1,7 @@
 package com.moviebooking.movie_booking.controller;
 
 import java.util.List;
+
 import org.springframework.web.bind.annotation.*;
 
 import com.moviebooking.movie_booking.model.Theatre;
@@ -25,5 +26,21 @@ public class TheatreController {
     @GetMapping
     public List<Theatre> getAllTheatres() {
         return theatreService.getAllTheatres();
+    }
+
+    @PutMapping("/{id}")
+    public Theatre updateTheatre(
+            @PathVariable Long id,
+            @RequestBody Theatre theatre) {
+
+        return theatreService.updateTheatre(id, theatre);
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteTheatre(@PathVariable Long id) {
+
+        theatreService.deleteTheatre(id);
+
+        return "Theatre deleted successfully";
     }
 }

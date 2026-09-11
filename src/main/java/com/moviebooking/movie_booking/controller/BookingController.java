@@ -2,6 +2,9 @@ package com.moviebooking.movie_booking.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.moviebooking.movie_booking.dto.BookingRequest;
@@ -15,12 +18,16 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(
+            BookingService bookingService) {
+
         this.bookingService = bookingService;
     }
 
     @PostMapping
-    public Booking bookSeats(@RequestBody BookingRequest request) {
+    public Booking bookSeats(
+            @RequestBody BookingRequest request) {
+
         return bookingService.bookSeats(request);
     }
 
@@ -28,6 +35,34 @@ public class BookingController {
     public List<Booking> getUserBookings(
             @PathVariable Long userId) {
 
-        return bookingService.getUserBookings(userId);
+        return bookingService
+                .getUserBookings(userId);
+    }
+
+    @GetMapping
+    public List<Booking> getAllBookings() {
+
+        return bookingService
+                .getAllBookings();
+    }
+
+    @GetMapping("/{id}/ticket")
+    public ResponseEntity<byte[]> downloadTicket(
+            @PathVariable Long id) {
+
+        byte[] pdf =
+                bookingService.downloadTicket(id);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=Movie-Ticket-"
+                                + id
+                                + ".pdf"
+                )
+                .contentType(
+                        MediaType.APPLICATION_PDF
+                )
+                .body(pdf);
     }
 }

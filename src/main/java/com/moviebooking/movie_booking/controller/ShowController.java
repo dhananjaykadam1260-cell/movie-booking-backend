@@ -22,18 +22,34 @@ public class ShowController {
     public Show addShow(
             @RequestParam Long movieId,
             @RequestParam Long theatreId,
+            @RequestParam Long screenId,
             @RequestBody Show show) {
 
-        return showService.addShow(movieId, theatreId, show);
+        return showService.addShow(
+                movieId,
+                theatreId,
+                screenId,
+                show
+        );
     }
 
     @GetMapping
     public List<Show> getAllShows() {
         return showService.getAllShows();
     }
-    
+
     @GetMapping("/movie/{movieId}")
-    public List<Show> getShowsByMovie(@PathVariable Long movieId) {
+    public List<Show> getShowsByMovie(
+            @PathVariable Long movieId) {
+
         return showService.getShowsByMovie(movieId);
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteShow(@PathVariable Long id) {
+
+        showService.deleteShow(id);
+
+        return "Show deleted successfully";
     }
 }

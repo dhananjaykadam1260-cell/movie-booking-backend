@@ -1,5 +1,8 @@
 package com.moviebooking.movie_booking.controller;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.*;
 
 import com.moviebooking.movie_booking.model.User;
@@ -22,7 +25,17 @@ public class AuthController {
     }
     
     @PostMapping("/login")
-    public String login(@RequestBody User user) {
-        return userService.loginUser(user.getEmail(), user.getPassword());
+    public Map<String, Object> login(@RequestBody User user) {
+        return userService.loginUser(
+            user.getEmail(),
+            user.getPassword()
+        );
     }
+    
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
+    }
+    
+   
 }
