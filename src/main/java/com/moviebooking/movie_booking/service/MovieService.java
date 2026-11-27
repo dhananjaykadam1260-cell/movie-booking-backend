@@ -2,8 +2,10 @@ package com.moviebooking.movie_booking.service;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import com.moviebooking.movie_booking.exception.ApiException;
 import com.moviebooking.movie_booking.model.Movie;
 import com.moviebooking.movie_booking.repository.MovieRepository;
 import com.moviebooking.movie_booking.repository.ShowRepository;
@@ -33,14 +35,12 @@ public class MovieService {
     public Movie getMovieById(Long id) {
         return movieRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Movie not found"));
+                        new ApiException(HttpStatus.NOT_FOUND, "Movie not found."));
     }
 
     public Movie updateMovie(Long id, Movie updatedMovie) {
 
-        Movie movie = movieRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Movie not found"));
+        Movie movie = getMovieById(id);
 
         movie.setTitle(updatedMovie.getTitle());
         movie.setLanguage(updatedMovie.getLanguage());
@@ -54,14 +54,11 @@ public class MovieService {
 
     public void deleteMovie(Long id) {
 
-        Movie movie = movieRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Movie not found"));
+        Movie movie = getMovieById(id);
 
         if (showRepository.existsByMovieId(id)) {
-            throw new RuntimeException(
-                    "Cannot delete movie because shows are assigned to it"
-            );
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Cannot delete movie because shows are assigned to it.");
         }
 
         movieRepository.delete(movie);

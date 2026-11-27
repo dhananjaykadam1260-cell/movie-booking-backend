@@ -3,9 +3,11 @@ package com.moviebooking.movie_booking.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.moviebooking.movie_booking.exception.ApiException;
 import com.moviebooking.movie_booking.model.Movie;
 import com.moviebooking.movie_booking.model.Screen;
 import com.moviebooking.movie_booking.model.Seat;
@@ -20,6 +22,11 @@ import com.moviebooking.movie_booking.repository.TheatreRepository;
 
 @Service
 public class ShowService {
+
+    private static final int SEATS_PER_ROW = 10;
+
+    // Rows are lettered A-Z, so a screen can have at most 26 rows.
+    private static final int MAX_SEATS = 26 * SEATS_PER_ROW;
 
     private final ShowRepository showRepository;
     private final MovieRepository movieRepository;
@@ -53,35 +60,37 @@ public class ShowService {
 
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() ->
-                        new RuntimeException("Movie not found"));
+                        new ApiException(HttpStatus.NOT_FOUND, "Movie not found."));
 
         Theatre theatre = theatreRepository.findById(theatreId)
                 .orElseThrow(() ->
-                        new RuntimeException("Theatre not found"));
+                        new ApiException(HttpStatus.NOT_FOUND, "Theatre not found."));
 
         Screen screen = screenRepository.findById(screenId)
                 .orElseThrow(() ->
-                        new RuntimeException("Screen not found"));
+                        new ApiException(HttpStatus.NOT_FOUND, "Screen not found."));
 
         // Make sure screen belongs to selected theatre
         if (screen.getTheatre() == null ||
                 !screen.getTheatre().getId().equals(theatreId)) {
 
-            throw new RuntimeException(
-                    "Selected screen does not belong to this theatre"
-            );
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Selected screen does not belong to this theatre.");
         }
 
+        if (screen.getTotalSeats() < 1 || screen.getTotalSeats() > MAX_SEATS) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Screen must have between 1 and " + MAX_SEATS + " seats.");
+        }
+
+        show.setId(null);
         show.setMovie(movie);
         show.setTheatre(theatre);
         show.setScreen(screen);
 
         Show savedShow = showRepository.save(show);
 
-        generateSeats(
-                savedShow,
-                screen.getTotalSeats()
-        );
+        generateSeats(savedShow, screen.getTotalSeats());
 
         return savedShow;
     }
@@ -92,22 +101,14 @@ public class ShowService {
 
         List<Seat> seats = new ArrayList<>();
 
-        int seatsPerRow = 10;
-
         for (int i = 0; i < totalSeats; i++) {
 
-            char row =
-                    (char) ('A' + (i / seatsPerRow));
-
-            int seatNumber =
-                    (i % seatsPerRow) + 1;
+            char row = (char) ('A' + (i / SEATS_PER_ROW));
+            int seatNumber = (i % SEATS_PER_ROW) + 1;
 
             Seat seat = new Seat();
 
-            seat.setSeatNumber(
-                    row + String.valueOf(seatNumber)
-            );
-
+            seat.setSeatNumber(row + String.valueOf(seatNumber));
             seat.setBooked(false);
             seat.setShow(show);
 
@@ -130,17 +131,14 @@ public class ShowService {
 
         Show show = showRepository.findById(showId)
                 .orElseThrow(() ->
-                        new RuntimeException("Show not found"));
+                        new ApiException(HttpStatus.NOT_FOUND, "Show not found."));
 
         if (bookingRepository.existsByShowId(showId)) {
-
-            throw new RuntimeException(
-                    "Cannot delete show because bookings already exist"
-            );
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Cannot delete show because bookings already exist.");
         }
 
-        List<Seat> seats =
-                seatRepository.findByShowId(showId);
+        List<Seat> seats = seatRepository.findByShowId(showId);
 
         seatRepository.deleteAll(seats);
 

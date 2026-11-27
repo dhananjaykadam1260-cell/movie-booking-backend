@@ -9,7 +9,6 @@ import com.moviebooking.movie_booking.service.SeatService;
 
 @RestController
 @RequestMapping("/api/seats")
-@CrossOrigin(origins = "http://localhost:5173")
 public class SeatController {
 
     private final SeatService seatService;

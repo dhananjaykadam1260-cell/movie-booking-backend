@@ -2,8 +2,10 @@ package com.moviebooking.movie_booking.service;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import com.moviebooking.movie_booking.exception.ApiException;
 import com.moviebooking.movie_booking.model.Theatre;
 import com.moviebooking.movie_booking.repository.ScreenRepository;
 import com.moviebooking.movie_booking.repository.ShowRepository;
@@ -34,13 +36,15 @@ public class TheatreService {
         return theatreRepository.findAll();
     }
 
-    public Theatre updateTheatre(
-            Long id,
-            Theatre updatedTheatre) {
-
-        Theatre theatre = theatreRepository.findById(id)
+    private Theatre getTheatre(Long id) {
+        return theatreRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Theatre not found"));
+                        new ApiException(HttpStatus.NOT_FOUND, "Theatre not found."));
+    }
+
+    public Theatre updateTheatre(Long id, Theatre updatedTheatre) {
+
+        Theatre theatre = getTheatre(id);
 
         theatre.setName(updatedTheatre.getName());
         theatre.setCity(updatedTheatre.getCity());
@@ -51,20 +55,16 @@ public class TheatreService {
 
     public void deleteTheatre(Long id) {
 
-        Theatre theatre = theatreRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Theatre not found"));
+        Theatre theatre = getTheatre(id);
 
         if (showRepository.existsByTheatreId(id)) {
-            throw new RuntimeException(
-                    "Cannot delete theatre because shows are assigned to it"
-            );
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Cannot delete theatre because shows are assigned to it.");
         }
 
         if (screenRepository.existsByTheatreId(id)) {
-            throw new RuntimeException(
-                    "Delete theatre screens first"
-            );
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Delete theatre screens first.");
         }
 
         theatreRepository.delete(theatre);

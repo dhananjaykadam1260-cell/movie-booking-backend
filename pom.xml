@@ -20,6 +20,8 @@
 
     <properties>
         <java.version>17</java.version>
+        <!-- Test groups skipped by default; override with -Dtest.excludedGroups= -->
+        <test.excludedGroups>integration</test.excludedGroups>
     </properties>
 
     <dependencies>
@@ -119,6 +121,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.2</version>
+            </plugin>
+
+            <!-- Unit tests run by default; @Tag("integration") tests need MySQL and env vars -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${test.excludedGroups}</excludedGroups>
+                </configuration>
             </plugin>
 
             <!-- Compiler -->

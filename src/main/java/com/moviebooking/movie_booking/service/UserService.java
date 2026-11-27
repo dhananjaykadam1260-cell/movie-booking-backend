@@ -1,17 +1,27 @@
 package com.moviebooking.movie_booking.service;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.moviebooking.movie_booking.dto.AuthResponse;
+import com.moviebooking.movie_booking.dto.LoginRequest;
+import com.moviebooking.movie_booking.dto.RegisterRequest;
+import com.moviebooking.movie_booking.dto.UserResponse;
+import com.moviebooking.movie_booking.exception.ApiException;
 import com.moviebooking.movie_booking.model.User;
 import com.moviebooking.movie_booking.repository.UserRepository;
-import java.util.List;
 
 @Service
 public class UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
+    private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -30,66 +40,75 @@ public class UserService {
         this.emailService = emailService;
     }
 
-    public String registerUser(User user) {
+    public void registerUser(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(user.getEmail())) {
-            return "Email already exists";
+        String name = request.name() == null ? "" : request.name().trim();
+        String email = request.email() == null ? "" : request.email().trim();
+        String password = request.password() == null ? "" : request.password();
+
+        if (name.isEmpty() || email.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Name and email are required.");
         }
 
-        user.setPassword(
-                passwordEncoder.encode(user.getPassword())
-        );
-
-        // Normal registrations should be USER
-        if (user.getRole() == null || user.getRole().isBlank()) {
-            user.setRole("USER");
+        if (password.length() < MIN_PASSWORD_LENGTH) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Password must be at least " + MIN_PASSWORD_LENGTH + " characters.");
         }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "An account with this email already exists.");
+        }
+
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        // Always USER. Admins are promoted directly in the database.
+        user.setRole("USER");
 
         userRepository.save(user);
 
-        emailService.sendWelcomeEmail(
+        // The account exists even if the welcome email fails.
+        try {
+            emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+        } catch (Exception e) {
+            log.warn("Welcome email failed for {}: {}", user.getEmail(), e.getMessage());
+        }
+    }
+
+    public AuthResponse loginUser(LoginRequest request) {
+
+        User user = request.email() == null
+                ? null
+                : userRepository.findByEmail(request.email().trim());
+
+        // Same message for unknown email and wrong password.
+        if (user == null || request.password() == null
+                || !passwordEncoder.matches(request.password(), user.getPassword())) {
+
+            throw new ApiException(HttpStatus.UNAUTHORIZED,
+                    "Invalid email or password.");
+        }
+
+        return new AuthResponse(
+                jwtService.generateToken(user.getEmail()),
+                user.getId(),
+                user.getName(),
                 user.getEmail(),
-                user.getName()
-        );
-
-        return "Registration successful";
+                user.getRole());
     }
 
-    public Map<String, Object> loginUser(
-            String email,
-            String password) {
+    public List<UserResponse> getAllUsers() {
 
-        User user = userRepository.findByEmail(email);
-
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-
-        if (!passwordEncoder.matches(
-                password,
-                user.getPassword())) {
-
-            throw new RuntimeException("Invalid password");
-        }
-
-        String token =
-                jwtService.generateToken(email);
-
-        Map<String, Object> response =
-                new HashMap<>();
-
-        response.put("token", token);
-        response.put("userId", user.getId());
-        response.put("name", user.getName());
-        response.put("email", user.getEmail());
-
-        // Important for admin login
-        response.put("role", user.getRole());
-
-        return response;
-    }
-    
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userRepository.findAll()
+                .stream()
+                .map(u -> new UserResponse(
+                        u.getId(),
+                        u.getName(),
+                        u.getEmail(),
+                        u.getRole()))
+                .toList();
     }
 }
