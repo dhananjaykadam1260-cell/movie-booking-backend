@@ -81,4 +81,25 @@ public class EmailService {
             );
         }
     }
+    
+    public void sendVerificationOtp(String email, String otp) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setFrom(fromEmail);
+        message.setTo(email);
+        message.setSubject("Movie Booking - Email Verification");
+
+        message.setText(
+            "Hello,\n\n" +
+            "Thank you for registering with Movie Booking.\n\n" +
+            "Your email verification OTP is: " + otp + "\n\n" +
+            "This OTP expires in 5 minutes.\n" +
+            "Do not share this code with anyone.\n\n" +
+            "If you did not request this code, please ignore this email.\n\n" +
+            "Regards,\nMovie Booking Team"
+        );
+
+        mailSender.send(message);
+    }
 }
